@@ -1,25 +1,26 @@
 package database
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rosset7i/zippy/internal/entity"
 )
 
 type Product struct {
-	DB *sql.DB
+	DB *pgxpool.Pool
 }
 
-func NewProduct(db *sql.DB) *Product {
+func NewProduct(db *pgxpool.Pool) *Product {
 	return &Product{
 		DB: db,
 	}
 }
 
 func (p *Product) Create(product *entity.Product) error {
-	_, err := p.DB.Exec(
+	_, err := p.DB.Exec(context.Background(),
 		"INSERT INTO products (id, name, price, created_at, updated_at) VALUES ($1,$2,$3,$4,$5)",
 		product.Id,
 		product.Name,
@@ -35,9 +36,9 @@ func (p *Product) FetchPaged(pageNumber, pageSize int, sort string) ([]entity.Pr
 	if sort != "asc" && sort != "desc" {
 		sort = "asc"
 	}
-	var products []entity.Product
+	products := make([]entity.Product, 0)
 	offset := (pageNumber - 1) * pageSize
-	rows, err := p.DB.Query(fmt.Sprintf("SELECT id, name, price, created_at, updated_at FROM products ORDER BY created_at %v LIMIT $1 OFFSET $2", sort), pageSize, offset)
+	rows, err := p.DB.Query(context.Background(), fmt.Sprintf("SELECT id, name, price, created_at, updated_at FROM products ORDER BY name %v LIMIT $1 OFFSET $2", sort), pageSize, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +57,7 @@ func (p *Product) FetchPaged(pageNumber, pageSize int, sort string) ([]entity.Pr
 
 func (p *Product) FetchById(id uuid.UUID) (*entity.Product, error) {
 	var product entity.Product
-	rows := p.DB.QueryRow("SELECT id, name, price, created_at, updated_at FROM products WHERE id = $1", id)
+	rows := p.DB.QueryRow(context.Background(), "SELECT id, name, price, created_at, updated_at FROM products WHERE id = $1", id)
 	err := rows.Scan(&product.Id, &product.Name, &product.Price, &product.CreatedAt, &product.UpdatedAt)
 
 	return &product, err
@@ -68,7 +69,7 @@ func (p *Product) Update(product *entity.Product) error {
 		return err
 	}
 
-	_, err = p.DB.Exec(
+	_, err = p.DB.Exec(context.Background(),
 		"UPDATE products SET (name, price, updated_at) = ($1, $2, $3) WHERE id = $4",
 		product.Name,
 		product.Price,
@@ -84,6 +85,6 @@ func (p *Product) Delete(id uuid.UUID) error {
 		return err
 	}
 
-	_, err = p.DB.Exec("DELETE FROM products WHERE id = $1", product.Id)
+	_, err = p.DB.Exec(context.Background(), "DELETE FROM products WHERE id = $1", product.Id)
 	return err
 }

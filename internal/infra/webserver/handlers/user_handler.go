@@ -30,17 +30,17 @@ func NewUserHandler(userDb database.UserInterface, config *config.Config) *UserH
 	}
 }
 
-// Create user godoc
-// @Summary      Create user
-// @Description  Create user
+// Register user godoc
+// @Summary      Register user
+// @Description  Register user
 // @Tags         users
 // @Accept       json
 // @Produce      json
 // @Param        request     body      dto.CreateUserRequest  true  "user request"
 // @Success      201
 // @Failure      500         {object}  Error
-// @Router       /users [post]
-func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
+// @Router       /users/register [post]
+func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var request dto.CreateUserRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
@@ -75,7 +75,7 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Success      200  {object}  dto.LoginResponse
 // @Failure      404  {object}  Error
 // @Failure      500  {object}  Error
-// @Router       /users/generate_token [post]
+// @Router       /users/login [post]
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request dto.LoginRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
@@ -105,6 +105,6 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(accessToken)
 }

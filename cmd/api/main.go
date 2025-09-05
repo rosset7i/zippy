@@ -1,14 +1,12 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
+	"context"
 	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/jwtauth"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/rosset7i/zippy/config"
 	_ "github.com/rosset7i/zippy/docs"
@@ -37,45 +35,33 @@ import (
 func main() {
 	config := config.LoadConfig()
 
-	connectionString := fmt.Sprintf(
-		"dbname=%v user=%v password=%v host=%v port=%v sslmode=disable client_encoding=UTF8",
-		config.DBName,
-		config.DBUser,
-		config.DBPassword,
-		config.DBHost,
-		config.DBPort,
-	)
-
-	db, err := sql.Open(config.DBDriver, connectionString)
+	db, err := database.NewPool(context.Background(), config.ConnectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	if err := db.Ping(); err != nil {
-		log.Fatal(err)
-	}
+	defer db.Close()
 
 	userHandler := handlers.NewUserHandler(database.NewUser(db), config)
 	productHandler := handlers.NewProductHandler(database.NewProduct(db))
 
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Route("/users", func(r chi.Router) {
-		r.Post("/", userHandler.Create)
-		r.Post("/", userHandler.Login)
+	routes := chi.NewRouter()
+	routes.Use(middleware.Logger)
+	routes.Use(middleware.Recoverer)
+	routes.Route("/users", func(r chi.Router) {
+		r.Post("/register", userHandler.Register)
+		r.Post("/login", userHandler.Login)
 	})
-	r.Route("/products", func(r chi.Router) {
-		r.Use(jwtauth.Verifier(config.TokenAuth))
-		r.Use(jwtauth.Authenticator)
+	routes.Route("/products", func(r chi.Router) {
+		// r.Use(jwtauth.Verifier(config.TokenAuth))
+		// r.Use(jwtauth.Authenticator)
 		r.Get("/", productHandler.FetchPaged)
 		r.Get("/{id}", productHandler.FetchById)
 		r.Post("/", productHandler.Create)
 		r.Put("/", productHandler.Update)
 		r.Delete("/", productHandler.Delete)
 	})
-	r.Get("/docs/*", httpSwagger.Handler(httpSwagger.URL("http://localhost:7000/docs/doc.json")))
-	if err := http.ListenAndServe(config.WebServerAddress, r); err != nil {
+	routes.Get("/docs/*", httpSwagger.Handler(httpSwagger.URL("http://localhost:7000/docs/doc.json")))
+	if err := http.ListenAndServe(config.WebServerAddress, routes); err != nil {
 		log.Fatal(err)
 	}
 }

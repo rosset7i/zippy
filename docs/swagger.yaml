@@ -28,6 +28,15 @@ definitions:
       access_token:
         type: string
     type: object
+  dto.UpdateProductRequest:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+    type: object
   entity.Product:
     properties:
       created_at:
@@ -61,6 +70,33 @@ info:
   version: "1.0"
 paths:
   /products:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a product
+      parameters:
+      - description: product ID
+        format: uuid
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.Error'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a product
+      tags:
+      - products
     get:
       consumes:
       - application/json
@@ -68,11 +104,15 @@ paths:
       parameters:
       - description: page number
         in: query
-        name: page
+        name: pageNumber
         type: string
       - description: limit
         in: query
-        name: limit
+        name: pageSize
+        type: string
+      - description: sort
+        in: query
+        name: sort
         type: string
       produces:
       - application/json
@@ -121,18 +161,17 @@ paths:
       summary: Create product
       tags:
       - products
-  /products/{id}:
-    delete:
+    put:
       consumes:
       - application/json
-      description: Delete a product
+      description: Update a product
       parameters:
-      - description: product ID
-        format: uuid
-        in: path
-        name: id
+      - description: product request
+        in: body
+        name: request
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/dto.UpdateProductRequest'
       produces:
       - application/json
       responses:
@@ -146,9 +185,10 @@ paths:
             $ref: '#/definitions/handlers.Error'
       security:
       - ApiKeyAuth: []
-      summary: Delete a product
+      summary: Update a product
       tags:
       - products
+  /products/{id}:
     get:
       consumes:
       - application/json
@@ -178,64 +218,7 @@ paths:
       summary: Get a product
       tags:
       - products
-    put:
-      consumes:
-      - application/json
-      description: Update a product
-      parameters:
-      - description: product ID
-        format: uuid
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: product request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.CreateProductRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "404":
-          description: Not Found
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/handlers.Error'
-      security:
-      - ApiKeyAuth: []
-      summary: Update a product
-      tags:
-      - products
-  /users:
-    post:
-      consumes:
-      - application/json
-      description: Create user
-      parameters:
-      - description: user request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.CreateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/handlers.Error'
-      summary: Create user
-      tags:
-      - users
-  /users/generate_token:
+  /users/login:
     post:
       consumes:
       - application/json
@@ -263,6 +246,30 @@ paths:
           schema:
             $ref: '#/definitions/handlers.Error'
       summary: Get a user JWT
+      tags:
+      - users
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      description: Register user
+      parameters:
+      - description: user request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.Error'
+      summary: Register user
       tags:
       - users
 securityDefinitions:

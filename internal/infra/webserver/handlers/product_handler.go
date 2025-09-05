@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/rosset7i/zippy/internal/dto"
 	"github.com/rosset7i/zippy/internal/entity"
@@ -28,12 +29,13 @@ func NewProductHandler(productDb database.ProductInterface) *ProductHandler {
 // @Tags         products
 // @Accept       json
 // @Produce      json
-// @Param        page      query     string  false  "page number"
-// @Param        limit     query     string  false  "limit"
-// @Success      200       {array}   entity.Product
-// @Failure      404       {object}  Error
-// @Failure      500       {object}  Error
-// @Router       /products [get]
+// @Param        pageNumber  query     string  false  "page number"
+// @Param        pageSize    query     string  false  "limit"
+// @Param        sort        query     string  false  "sort"
+// @Success      200         {array}   entity.Product
+// @Failure      404         {object}  Error
+// @Failure      500         {object}  Error
+// @Router       /products   [get]
 // @Security ApiKeyAuth
 func (h *ProductHandler) FetchPaged(w http.ResponseWriter, r *http.Request) {
 	pageNumber, err := strconv.Atoi(r.URL.Query().Get("pageNumber"))
@@ -71,7 +73,7 @@ func (h *ProductHandler) FetchPaged(w http.ResponseWriter, r *http.Request) {
 // @Router       /products/{id} [get]
 // @Security ApiKeyAuth
 func (h *ProductHandler) FetchById(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(r.URL.Query().Get("id"))
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -128,12 +130,11 @@ func (h *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 // @Tags         products
 // @Accept       json
 // @Produce      json
-// @Param        id        	path      string                  true  "product ID" Format(uuid)
-// @Param        request     body      dto.CreateProductRequest  true  "product request"
+// @Param        request     body      dto.UpdateProductRequest  true  "product request"
 // @Success      200
 // @Failure      404
 // @Failure      500       {object}  Error
-// @Router       /products/{id} [put]
+// @Router       /products [put]
 // @Security ApiKeyAuth
 func (h *ProductHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var request dto.UpdateProductRequest
@@ -169,11 +170,11 @@ func (h *ProductHandler) Update(w http.ResponseWriter, r *http.Request) {
 // @Tags         products
 // @Accept       json
 // @Produce      json
-// @Param        id        path      string                  true  "product ID" Format(uuid)
+// @Param        id        query      string                  true  "product ID" Format(uuid)
 // @Success      200
 // @Failure      404
 // @Failure      500       {object}  Error
-// @Router       /products/{id} [delete]
+// @Router       /products [delete]
 // @Security ApiKeyAuth
 func (h *ProductHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(r.URL.Query().Get("id"))
